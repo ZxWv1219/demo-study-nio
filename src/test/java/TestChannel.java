@@ -37,6 +37,9 @@ import java.nio.file.StandardOpenOption;
  * transferFrom()
  * transferTo()
  *
+ * 五 分散(Scatter)与聚集(Gather)
+ * 分散读取(Scattering Reads): 将通道中的数据分散到多个缓冲区中
+ * 聚集写入(Gathering Writes): 将多个缓冲区中的数据聚集到通道中
  * @author Zx
  * @date 2020/6/23 15:27
  * @modified By:
@@ -143,7 +146,8 @@ public class TestChannel {
                 StandardOpenOption.WRITE,
                 StandardOpenOption.CREATE);
 
-        inChannel.transferTo(0, inChannel.size(), outChannel);
+//        inChannel.transferTo(0, inChannel.size(), outChannel);
+        outChannel.transferFrom(inChannel, 0, inChannel.size());
         inChannel.close();
         outChannel.close();
     }
