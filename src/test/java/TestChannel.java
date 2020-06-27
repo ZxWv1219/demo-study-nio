@@ -1,13 +1,15 @@
 import org.junit.Test;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.charset.*;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * 一 通道(channel) ： 用于源节点与目标节点的连接。在java NIO中负责缓冲区中数据的传输。因此需要配合缓冲区进行传输
@@ -36,10 +38,15 @@ import java.nio.file.StandardOpenOption;
  * 四 通道之间的数据传输
  * transferFrom()
  * transferTo()
- *
+ * <p>
  * 五 分散(Scatter)与聚集(Gather)
  * 分散读取(Scattering Reads): 将通道中的数据分散到多个缓冲区中
  * 聚集写入(Gathering Writes): 将多个缓冲区中的数据聚集到通道中
+ * <p>
+ * 六 字符集 Charset
+ * 编码:字符串转成字节数组
+ * 解码: 字节数组转成字符串
+ *
  * @author Zx
  * @date 2020/6/23 15:27
  * @modified By:
@@ -150,5 +157,68 @@ public class TestChannel {
         outChannel.transferFrom(inChannel, 0, inChannel.size());
         inChannel.close();
         outChannel.close();
+    }
+
+    //分散和聚集
+    @Test
+    public void test4() throws IOException {
+        T i = new T();
+        RandomAccessFile raf1 = new RandomAccessFile("1.txt", "rw");
+
+        //1. 获取通道
+        FileChannel channelRead = raf1.getChannel();
+        //2. 分配指定大小的缓冲区
+        ByteBuffer buf1 = ByteBuffer.allocate(100);
+        ByteBuffer buf2 = ByteBuffer.allocate(1024);
+        //3. 分散读取
+        ByteBuffer[] bufs = {buf1, buf2};
+        channelRead.read(bufs);
+
+        for (ByteBuffer buffer : bufs) {
+            buffer.flip();
+        }
+
+        System.out.println(new String(bufs[0].array(), 0, bufs[0].limit()));
+        System.out.println("我是分割线------------------------");
+        System.out.println(new String(bufs[1].array(), 0, bufs[1].limit()));
+
+        //4. 聚集写入
+        RandomAccessFile raf2 = new RandomAccessFile("2.txt", "rw");
+        FileChannel channelWrite = raf2.getChannel();
+
+        channelWrite.write(bufs);
+    }
+
+    //字符集
+    @Test
+    public void test5() throws CharacterCodingException {
+        Charset charset1 = Charset.forName("GBK");
+
+        //获取编码器
+        CharsetEncoder charsetEncoder = charset1.newEncoder();
+        //获取解码器
+        CharsetDecoder charsetDecoder = charset1.newDecoder();
+
+        CharBuffer charBuffer = CharBuffer.allocate(1024);
+        charBuffer.put("我是Zx");
+        charBuffer.flip();
+
+        //编码
+        ByteBuffer byteBuffer = charsetEncoder.encode(charBuffer);
+
+        for (int i = 0; i < 6; i++) {
+            System.out.println(byteBuffer.get());
+        }
+        byteBuffer.flip();
+        CharBuffer charBuffer1 = charsetDecoder.decode(byteBuffer);
+
+//        charBuffer1.flip();
+        System.out.println(charBuffer1.toString());
+
+
+        Charset charset = StandardCharsets.UTF_8;
+        byteBuffer.flip();
+        CharBuffer charBuffer2 = charset.decode(byteBuffer);
+        System.out.println(charBuffer2.toString());
     }
 }
